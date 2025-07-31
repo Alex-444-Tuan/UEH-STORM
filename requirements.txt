@@ -1,0 +1,28 @@
+langchain
+chainlit
+faiss-cpu            # or chromadb or pinecone
+python-dotenv
+unstructured         # for better doc parsing
+groq
+langchain
+langchain-groq
+langchain_community 
+langchain_chroma
+langchain-huggingface
+sentence-transformers
+langsmith
+
+dspy_ai==2.4.9
+wikipedia==1.4.0
+sentence-transformers
+toml
+langchain-text-splitters
+trafilatura
+langchain-huggingface
+qdrant-client
+langchain-qdrant
+numpy==1.26.4
+litellm==1.59.3
+diskcache
+langchain_mistralai
+knowledge_storm
