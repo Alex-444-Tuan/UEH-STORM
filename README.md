@@ -16,6 +16,7 @@ SETUP:
 tạo môi trường
 
 python -m venv [ ten_moi_truong ]
+
 source [ ten_moi_truong ]/bin/activate
 
 pip install -r requirements.txt
