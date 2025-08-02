@@ -7,6 +7,7 @@ from knowledge_storm import (
     STORMWikiLMConfigs,
 )
 from knowledge_storm.lm import OpenAIModel, AzureOpenAIModel
+from knowledge_storm.lm import GroqModel
 from knowledge_storm.rm import (
     YouRM,
     BingSearch,
@@ -22,7 +23,7 @@ from knowledge_storm.utils import load_api_key
 def run_storm_pipeline(
     topic: str,
     retriever: str = "you",
-    output_dir: str = "./results/gpt",
+    output_dir: str = "./results/groq",
     max_thread_num: int = 3,
     do_research: bool = True,
     do_generate_outline: bool = True,
@@ -34,17 +35,28 @@ def run_storm_pipeline(
 ):
     load_api_key(toml_file_path="secrets.toml")
     lm_configs = STORMWikiLMConfigs()
+#chatGPT
     openai_kwargs = {
         "api_key": os.getenv("OPENAI_API_KEY"),
         "temperature": 1.0,
         "top_p": 0.9,
     }
 
+#groq
+    # groq_kwargs = {
+    #     "api_key": os.getenv("GROQ_API_KEY"),
+    #     "api_base": "https://api.groq.com/openai/v1",
+    #     "temperature": 1.0,
+    #     "top_p": 0.9,
+    # }
+
     ModelClass = (
         OpenAIModel if os.getenv("OPENAI_API_TYPE") == "openai" else AzureOpenAIModel
     )
+
     # If you are using Azure service, make sure the model name matches your own deployed model name.
     # The default name here is only used for demonstration and may not match your case.
+
     gpt_35_model_name = (
         "gpt-3.5-turbo" if os.getenv("OPENAI_API_TYPE") == "openai" else "gpt-35-turbo"
     )
@@ -53,11 +65,14 @@ def run_storm_pipeline(
         openai_kwargs["api_base"] = os.getenv("AZURE_API_BASE")
         openai_kwargs["api_version"] = os.getenv("AZURE_API_VERSION")
 
+    
+
     # STORM is a LM system so different components can be powered by different models.
     # For a good balance between cost and quality, you can choose a cheaper/faster model for conv_simulator_lm
     # which is used to split queries, synthesize answers in the conversation. We recommend using stronger models
     # for outline_gen_lm which is responsible for organizing the collected information, and article_gen_lm
     # which is responsible for generating sections with citations.
+#chatGPT
     conv_simulator_lm = ModelClass(
         model=gpt_35_model_name, max_tokens=500, **openai_kwargs
     )
@@ -69,6 +84,18 @@ def run_storm_pipeline(
     article_polish_lm = ModelClass(
         model=gpt_4_model_name, max_tokens=4000, **openai_kwargs
     )
+#Groq
+    # conv_simulator_lm = GroqModel(
+    #     model="llama3-70b-8192", max_tokens=500, **groq_kwargs
+    # )
+    # question_asker_lm = GroqModel(
+    #     model="llama3-70b-8192", max_tokens=500, **groq_kwargs
+    # )
+    # outline_gen_lm = GroqModel(model="llama3-70b-8192", max_tokens=400, **groq_kwargs)
+    # article_gen_lm = GroqModel(model="llama3-70b-8192", max_tokens=700, **groq_kwargs)
+    # article_polish_lm = GroqModel(
+    #     model="llama3-70b-8192", max_tokens=4000, **groq_kwargs
+    # )
 
     lm_configs.set_conv_simulator_lm(conv_simulator_lm)
     lm_configs.set_question_asker_lm(question_asker_lm)

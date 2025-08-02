@@ -1,4 +1,6 @@
 import os # module to interact with the operating system
+
+import deepl
 from dotenv import load_dotenv # module to load environment variables from a .env file
 from langchain_groq import ChatGroq
 import chainlit as cl
@@ -11,8 +13,12 @@ import re
 from typing import List, Tuple
 
 
+
 load_dotenv()
 
+#set up google translate
+
+auth = os.getenv("DEEPL_API_KEY")
 
 # dùng để chia table content dựa trên # ở trong file storm_gen_article.txt
 def parse_all_markdown_sections(text: str) -> List[Tuple[str, str]]:
@@ -40,14 +46,32 @@ def parse_all_markdown_sections(text: str) -> List[Tuple[str, str]]:
 # ) 
 # # đây là optional có thể lượt bỏ bớt
 
+@cl.on_chat_start
+async def on_chat_start():
+#google translate
+    # client = translate.Client.from_service_account_json('seventh-odyssey-467708-m2-d9a0f4ebe813.json')
+
+    # input_language = "vi"
+    # output_language = "en"
+    # cl.user_session.set("input_language", input_language)  # Lưu ngôn ngữ đầu vào
+    # cl.user_session.set("output_language", output_language)  # Lưu ngôn ng
+    # cl.user_session.set("client", client)  # Lưu client dịch
+#DeepL
+    translator = deepl.DeepLClient(auth_key=auth)
+    cl.user_session.set("translator", translator)  # Lưu translator DeepL
 
 
 @cl.on_message
-async def handle_message(msg: cl.Message):
-
+async def handle_message(msgt: cl.Message):
+#google translate
+    # msg = cl.user_session.get("client").translate(msgt.content, target_language=cl.user_session.get("output_language"))
+# DeepL
+    msg = cl.user_session.get("translator").translate_text(msgt.content, target_lang="EN-US", preserve_formatting=True)
     await cl.Message(content='Preparing the STORM Wiki pipeline...').send()
-
-    topic = msg.content
+#google translate
+    # topic = msg['translatedText']
+# DeepL
+    topic = msg.text 
     await cl.Message(content=f"Topic received: `{topic}`\nRunning the pipeline...").send()
 
 
@@ -73,16 +97,20 @@ async def handle_message(msg: cl.Message):
         if os.path.exists(result_path):
             with open(result_path, "r") as f:
                 article = f.read()
-            await cl.Message(content=f"✅ Article generated:\n\n{article}").send()
+#google translate
+                # article_translated = cl.user_session.get("client").translate(article, target_language=cl.user_session.get("input_language"))['translatedText']
+#DeepL
+                article_translated = cl.user_session.get("translator").translate_text(article, target_lang="VI", preserve_formatting=True, tag_handling="xml").text
+            await cl.Message(content=f"✅ Article generated:\n\n{article_translated}").send()
         else:
             await cl.Message(content="⚠️ Article file not found!").send()
 
-        sections = parse_all_markdown_sections(article)
+        sections = parse_all_markdown_sections(article_translated)
 
         cl.user_session.set("sections", sections)  # Store sections in user session
         cl.user_session.set("topic", topic)  # Store topic in user session  
 
-        toc = cl.TaskList(title=f"Table of Contents for {topic}", tasks=[cl.Task(title=title,status="done") for title, _ in sections])
+        toc = cl.TaskList(title=f"Table of Contents for {topic}", tasks=[cl.Task(title=title, status="done") for title, _ in sections])
 
         await toc.send()
 
@@ -99,6 +127,7 @@ async def handle_message(msg: cl.Message):
         else:
             # Sort by index (value)
             sorted_urls = sorted(url_map.items(), key=lambda x: x[1])
+
 
             # lập table content
             markdown_links = "\n".join(
