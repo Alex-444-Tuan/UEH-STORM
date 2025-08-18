@@ -11,6 +11,7 @@ from langsmith import Client
 import json
 import re
 from typing import List, Tuple
+from langchain.agents import initialize_agent, Tool
 
 
 
@@ -40,6 +41,7 @@ def parse_all_markdown_sections(text: str) -> List[Tuple[str, str]]:
 
 
 
+
 # client = Client(
 #   api_key= os.getenv("LANGSMITH_API_KEY"), 
 #   api_url="https://api.smith.langchain.com",  
@@ -48,21 +50,18 @@ def parse_all_markdown_sections(text: str) -> List[Tuple[str, str]]:
 
 @cl.on_chat_start
 async def on_chat_start():
-#google translate
-    # client = translate.Client.from_service_account_json('seventh-odyssey-467708-m2-d9a0f4ebe813.json')
-
-    # input_language = "vi"
-    # output_language = "en"
-    # cl.user_session.set("input_language", input_language)  # Lưu ngôn ngữ đầu vào
-    # cl.user_session.set("output_language", output_language)  # Lưu ngôn ng
-    # cl.user_session.set("client", client)  # Lưu client dịch
 #DeepL
     translator = deepl.DeepLClient(auth_key=auth)
-    cl.user_session.set("translator", translator)  # Lưu translator DeepL
+    cl.user_session.set("translator", translator)
 
 
 @cl.on_message
 async def handle_message(msgt: cl.Message):
+
+
+
+
+# xử lí pipeline song ngữ và STORM
 #google translate
     # msg = cl.user_session.get("client").translate(msgt.content, target_language=cl.user_session.get("output_language"))
 # DeepL
@@ -82,7 +81,7 @@ async def handle_message(msgt: cl.Message):
         # để không làm gián đoạn quá trình xử lý của Chainlit
         await asyncio.to_thread(run_storm_pipeline,
             topic=topic,
-            retriever="you",
+            retriever="tavily",
             output_dir="./data",
             do_research=True,
             do_generate_outline=True,
